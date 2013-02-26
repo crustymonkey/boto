@@ -88,7 +88,9 @@ qsa_of_interest = ['acl', 'cors', 'defaultObjectAcl', 'location', 'logging',
                    # (StorageClass is associated to individual keys in S3, but
                    # having it listed here should cause no problems because
                    # GET bucket?storageClass is not part of the S3 API.)
-                   'storageClass']
+                   'storageClass',
+                   # websiteConfig is a QSA for buckets in Google Cloud Storage.
+                   'websiteConfig']
 
 
 _first_cap_regex = re.compile('(.)([A-Z][a-z]+)')
@@ -115,7 +117,7 @@ def canonical_string(method, path, headers, expires=None,
         lk = key.lower()
         if headers[key] != None and (lk in ['content-md5', 'content-type', 'date'] or
                                      lk.startswith(provider.header_prefix)):
-            interesting_headers[lk] = headers[key].strip()
+            interesting_headers[lk] = str(headers[key]).strip()
 
     # these keys get empty strings if they don't exist
     if 'content-type' not in interesting_headers:

@@ -41,6 +41,10 @@ def _print_zone_info(zoneinfo):
     print zoneinfo['Config']
     print
 
+def _get_zone_by_name(zone_name):
+    zone = conn.get_hosted_zone_by_name(zone_name)
+    if zone:
+        return zone['GetHostedZoneResponse']['HostedZone']['Id'].split('/')[-1]
 
 def create(conn, hostname, caller_reference=None, comment=''):
     """Create a hosted zone, returning the nameservers"""
@@ -62,7 +66,15 @@ def ls(conn):
 
 def get(conn, hosted_zone_id, type=None, name=None, maxitems=None):
     """Get all the records for a single zone"""
-    response = conn.get_all_rrsets(hosted_zone_id, type, name, maxitems=maxitems)
+    try:
+        response = conn.get_all_rrsets(hosted_zone_id, type, name, 
+            maxitems=maxitems)
+    except:
+        # Let's try using the zone name rather than just failing if the ID
+        # wasn't given
+        hosted_zone_id = _get_zone_by_name(hosted_zone_id)
+    response = conn.get_all_rrsets(hosted_zone_id, type, name, 
+        maxitems=maxitems)
     # If a maximum number of items was set, we limit to that number
     # by turning the response into an actual list (copying it)
     # instead of allowing it to page
@@ -74,6 +86,10 @@ def get(conn, hosted_zone_id, type=None, name=None, maxitems=None):
 
 def _add_del(conn, hosted_zone_id, change, name, type, identifier, weight, values, ttl, comment):
     from boto.route53.record import ResourceRecordSets
+    try:
+        changes = ResourceRecordSets(conn, hosted_zone_id, comment)
+    except:
+        hosted_zone_id = _get_zone_by_name(hosted_zone_id)
     changes = ResourceRecordSets(conn, hosted_zone_id, comment)
     change = changes.add_change(change, name, type, ttl,
                                 identifier=identifier, weight=weight)
@@ -83,6 +99,10 @@ def _add_del(conn, hosted_zone_id, change, name, type, identifier, weight, value
 
 def _add_del_alias(conn, hosted_zone_id, change, name, type, identifier, weight, alias_hosted_zone_id, alias_dns_name, comment):
     from boto.route53.record import ResourceRecordSets
+    try:
+        changes = ResourceRecordSets(conn, hosted_zone_id, comment)
+    except:
+        hosted_zone_id = _get_zone_by_name(hosted_zone_id)
     changes = ResourceRecordSets(conn, hosted_zone_id, comment)
     change = changes.add_change(change, name, type,
                                 identifier=identifier, weight=weight)
@@ -117,6 +137,10 @@ def change_record(conn, hosted_zone_id, name, type, newvalues, ttl=600,
                    identifier=None, weight=None, comment=""):
     """Delete and then add a record to a zone.  identifier and weight are optional."""
     from boto.route53.record import ResourceRecordSets
+    try:
+        changes = ResourceRecordSets(conn, hosted_zone_id, comment)
+    except:
+        hosted_zone_id = _get_zone_by_name(hosted_zone_id)
     changes = ResourceRecordSets(conn, hosted_zone_id, comment)
     # Assume there are not more than 10 WRRs for a given (name, type)
     responses = conn.get_all_rrsets(hosted_zone_id, type, name, maxitems=10)
@@ -140,6 +164,10 @@ def change_record(conn, hosted_zone_id, name, type, newvalues, ttl=600,
 def change_alias(conn, hosted_zone_id, name, type, new_alias_hosted_zone_id, new_alias_dns_name, identifier=None, weight=None, comment=""):
     """Delete and then add an alias to a zone.  identifier and weight are optional."""
     from boto.route53.record import ResourceRecordSets
+    try:
+        changes = ResourceRecordSets(conn, hosted_zone_id, comment)
+    except:
+        hosted_zone_id = _get_zone_by_name(hosted_zone_id)
     changes = ResourceRecordSets(conn, hosted_zone_id, comment)
     # Assume there are not more than 10 WRRs for a given (name, type)
     responses = conn.get_all_rrsets(hosted_zone_id, type, name, maxitems=10)
